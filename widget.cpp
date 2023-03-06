@@ -5,53 +5,45 @@
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent)
-    , ui(new Ui::Widget)
+    , ui(new Ui::Widget),
+      m_socket(new QTcpSocket(this)),
+      m_socketReady(false)
 {
     ui->setupUi(this);
-    setWindowTitle("Server | Data receiver");
+    setWindowTitle("Client | Data Sender");
 
-    m_socket = nullptr;
+    m_socket -> connectToHost("localhost", 5050);
 
-    m_server.listen(QHostAddress::LocalHost, 5050);
-
-    connect(&m_server,&QTcpServer::newConnection,this,&Widget::gotConnection);
-
+    connect(m_socket,&QTcpSocket::connected, this, &Widget::socketReadey);
+    connect(m_socket,&QTcpSocket::stateChanged,this,&Widget::stateChanged);
 
 }
 
 Widget::~Widget()
 {
-    if (m_socket)
-    {
-        qDebug() << "Closing socket : " << (m_socket==nullptr);
-        m_socket -> close();
-        m_socket -> deleteLater();
-    }
-    m_server.close();
+    m_socket -> close();
     delete ui;
 }
 
-void Widget::gotConnection()
+void Widget::socketReadey()
 {
-    qDebug() << "Server got new connection";
-    m_socket = m_server.nextPendingConnection();
-    connect(m_socket,QTcpSocket::readyRead,this,&Widget::readData);
+    m_socketReady = true;
+
 }
 
-void Widget::readData()
+void Widget::stateChanged(QAbstractSocket::SocketState socketState)
 {
-    QDataStream in(m_socket);
+    qDebug() << socketState;
+}
 
-    in.startTransaction(); // 전체 데이터를 가질 때까지 기다렸다가 한번에 읽고 모든 것을 읽을 수 있게 해준다.
 
-    QString recvString;
-    in >> recvString;
-
-    if(!in.commitTransaction())
+void Widget::on_lineEdit_textChanged(const QString &newtext)
+{
+    if(m_socketReady)
     {
-        return; // wait for more data
-    }
+        QDataStream out(m_socket);
+        out << newtext;
 
-    ui->textEdit->append(recvString);
+    }
 }
 
