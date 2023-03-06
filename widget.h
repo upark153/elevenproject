@@ -2,8 +2,8 @@
 #define WIDGET_H
 
 #include <QWidget>
+#include <QTcpServer>
 #include <QTcpSocket>
-
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -16,15 +16,13 @@ public:
     Widget(QWidget *parent = nullptr);
     ~Widget();
 
-private slots:
-    void socketReadey();
-    void stateChanged(QAbstractSocket::SocketState socketState);
-
-    void on_lineEdit_textChanged(const QString &newtext);
+public slots:
+    void gotConnection();
+    void readData();
 
 private:
     Ui::Widget *ui;
+    QTcpServer m_server;
     QTcpSocket *m_socket;
-    bool m_socketReady;
 };
 #endif // WIDGET_H
